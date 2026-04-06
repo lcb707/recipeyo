@@ -1,0 +1,10 @@
+.cursorrules
+.env
+
+# 데이터 베이스스
+db_mysql/database/
+db_mysql/mysql/data/
+db_mysql/mysql/logs/
+db_mysql/mysql/conf.d/
+db_mysql/database/datadir/
+/database/datadir/

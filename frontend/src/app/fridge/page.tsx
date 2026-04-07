@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { Suspense, useEffect, useState, useCallback, useRef } from 'react';
 import { getAllFridges, getFridgeItems, GetFridgeItemsParams } from '@/api/fridge';
 import { useSearchParams } from 'next/navigation';
 import { Fridge, FridgeItem } from '@/types';
@@ -16,7 +16,7 @@ const STORAGE_MAP: Record<StorageFilter, GetFridgeItemsParams['storage_type'] | 
     '실온': 'ROOM_TEMP',
 };
 
-export default function FridgePage() {
+function FridgePageContent() {
     const [fridgeList, setFridgeList] = useState<Fridge[]>([]);
     const [selectedFridgeId, setSelectedFridgeId] = useState<number | null>(null);
     const [currentFridge, setCurrentFridge] = useState<Fridge | null>(null);
@@ -388,5 +388,20 @@ export default function FridgePage() {
                 />
             )}
         </div>
+    );
+}
+
+export default function FridgePage() {
+    return (
+        <Suspense
+            fallback={
+                <div className="flex flex-col flex-1 items-center justify-center py-20 text-slate-500">
+                    <span className="material-symbols-outlined animate-spin text-primary text-4xl mb-2">progress_activity</span>
+                    <p>냉장고 정보를 불러오는 중...</p>
+                </div>
+            }
+        >
+            <FridgePageContent />
+        </Suspense>
     );
 }

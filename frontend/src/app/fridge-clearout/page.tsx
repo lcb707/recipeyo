@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { Suspense, useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAllFridges, getFridgeItems, GetFridgeItemsParams, recommendRecipes } from '@/api/fridge';
 import { useSearchParams } from 'next/navigation';
@@ -18,7 +18,7 @@ const STORAGE_MAP: Record<StorageFilter, GetFridgeItemsParams['storage_type'] | 
     '실온': 'ROOM_TEMP',
 };
 
-export default function FridgeClearoutPage() {
+function FridgeClearoutPageContent() {
     const router = useRouter();
     const [fridgeList, setFridgeList] = useState<Fridge[]>([]);
     const [selectedFridgeId, setSelectedFridgeId] = useState<number | null>(null);
@@ -366,5 +366,19 @@ export default function FridgeClearoutPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function FridgeClearoutPage() {
+    return (
+        <Suspense
+            fallback={
+                <div className="min-h-screen flex items-center justify-center bg-background-light dark:bg-background-dark">
+                    <span className="material-symbols-outlined animate-spin text-primary text-5xl">progress_activity</span>
+                </div>
+            }
+        >
+            <FridgeClearoutPageContent />
+        </Suspense>
     );
 }

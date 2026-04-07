@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:31000';
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://recipeyo.duckdns.org';
 
 export const apiClient = axios.create({
     baseURL: BASE_URL,

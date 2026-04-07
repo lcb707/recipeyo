@@ -8,4 +8,3 @@ RUN mkdir -p /tmp/nginx/dev-cache
 COPY conf.d/* ./conf.d/
 COPY nginx.conf ./
 
-EXPOSE  61000 443 80

@@ -1,3 +1,5 @@
+.PHONY: setting-all local_dj_setting aws-up aws-down aws-redis aws-logs
+
 up-redis:
 	docker-compose down redis
 	docker-compose up -d --build redis
@@ -42,7 +44,21 @@ aws-down:
 aws-logs:
 	docker compose -f docker-compose-aws.yml --env-file .env.aws logs -f nginx dj-server60000 frontend celery_worker
 
-.PHONY: setting-all local_dj_setting
+aws-redis:
+	docker compose -f docker-compose-aws.yml --env-file .env.aws down redis
+	docker compose -f docker-compose-aws.yml --env-file .env.aws up -d --build redis
+
+aws-backend:
+	docker compose -f docker-compose-aws.yml --env-file .env.aws down dj-server60000
+	docker compose -f docker-compose-aws.yml --env-file .env.aws up -d --build dj-server60000
+
+aws-frontend:
+	docker compose -f docker-compose-aws.yml --env-file .env.aws down frontend
+	docker compose -f docker-compose-aws.yml --env-file .env.aws up -d --build frontend
+
+aws-nginx:
+	docker compose -f docker-compose-aws.yml --env-file .env.aws down nginx
+	docker compose -f docker-compose-aws.yml --env-file .env.aws up -d --build nginx
 
 setting-all:
 	docker network create net_default
@@ -52,12 +68,12 @@ setting-all:
 	mkdir -p ./volume/outgoing_volume
 
 #local_makemigrations:
-#	sudo apt update
-#	sudo apt install python3-pip python3-venv python3-dev libmysqlclient-dev pkg-config build-essential -y
-#	
-#	cd backend
-#	python3 -m venv venv # (최초 1회 )
+#       sudo apt update
+#       sudo apt install python3-pip python3-venv python3-dev libmysqlclient-dev pkg-config build-essential -y
+#
+#       cd backend
+#       python3 -m venv venv # (최초 1회 )
 
-#	source venv/bin/activate # 가상환경 활성화
-#	pip install -r requirements.txt
-#  	python manage.py makemigrations 
+#       source venv/bin/activate # 가상환경 활성화
+#       pip install -r requirements.txt
+#       python manage.py makemigrations

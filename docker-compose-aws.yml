@@ -98,7 +98,7 @@ services:
     environment:
       - NODE_ENV=production
       # API 베이스를 다른 URL로 쓸 때만 설정. 기본은 same-origin(/api).
-      # - NEXT_PUBLIC_API_URL=https://recipeyo.duckdns.org
+      - NEXT_PUBLIC_API_URL=https://recipeyo.duckdns.org
     healthcheck:
       test: ["CMD-SHELL", "nc -z 127.0.0.1 40001"]
       interval: 10s

@@ -1,0 +1,149 @@
+# 루트 docker-compose: 전체 서비스 한 번에 기동
+# 사용 전 외부 네트워크/볼륨 생성:
+#   docker network create net_default
+#   docker volume create static_value
+#   docker volume create outgoing_volume   # 업로드 이미지(media) 저장용
+
+services:
+  mysql_dj:
+    image: mysql:8.0
+    restart: always
+    container_name: mysql_dj
+    environment:
+      MYSQL_ROOT_PASSWORD: "admin"
+      MYSQL_DATABASE: "dj_DB"
+      MYSQL_USER: "sky"
+      MYSQL_PASSWORD: "1234"
+      TZ: Asia/Seoul
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --sql_mode=STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION
+      - --default-authentication-plugin=mysql_native_password
+    volumes:
+      - ./db_mysql/database/init/:/docker-entrypoint-initdb.d/
+      - ./db_mysql/database/datadir/:/var/lib/mysql
+    platform: linux/x86_64
+    ports:
+      - 63006:3306
+    networks:
+      - dj_server
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "2"
+
+  dj-server60000:
+    build: ./backend
+    image: dj-server:1.0.1
+    restart: always
+    container_name: dj-server60000
+    env_file:
+      - ./backend/.env
+    networks:
+      - dj_server
+    ports:
+      - 60000:60000
+    environment:
+      - DEBUG=True
+      - REMOTE_SERVER_TYPE=DEVELOPMENT
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "2"
+    volumes: #신규 설치 시 볼륨 마운트 확인
+      - /home/sky/volume/static_value:/usr/src/app/staticfiles
+      - /home/sky/volume/outgoing_volume:/usr/src/app/outgoing
+    depends_on:
+      - mysql_dj
+
+  celery_worker:
+    build: ./backend
+    image: dj-server:1.0.1
+    restart: always
+    container_name: celery_worker
+    env_file:
+      - ./backend/.env
+    command: celery -A config worker --loglevel=info
+    depends_on:
+      - dj-server60000
+    networks:
+      - dj_server
+    environment:
+      - DEBUG=True
+      - REMOTE_SERVER_TYPE=DEVELOPMENT
+
+  frontend:
+    build: ./frontend
+    image: frontend:1.0
+    restart: always
+    container_name: frontend
+    networks:
+      - dj_server
+    ports:
+      - 40001:40001
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    # Docker 환경에서는 .env.local 없이 동작 (브라우저에서 API는 상대 경로로 같은 Origin 사용).
+    # API 베이스를 다른 URL로 쓸 때만 NEXT_PUBLIC_API_URL 설정.
+    environment:
+      - WATCHPACK_POLLING=true
+      # - NEXT_PUBLIC_API_URL=http://localhost:31000
+
+  nginx:
+    build: ./nginx
+    image: isung/nginx:1.1
+    restart: always
+    container_name: nginx_dj
+    networks:
+      - dj_server
+    ports:
+      - 31000:31000
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - /home/sky/volume/static_value:/usr/src/app/staticfiles:ro
+      - /home/sky/volume/outgoing_volume:/usr/src/app/outgoing:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "10"
+    depends_on:
+      - dj-server60000
+      - frontend
+
+  redis:
+    image: redis:7-alpine
+    container_name: django_redis
+    command: >
+      redis-server /usr/local/etc/redis/redis.conf
+      --requirepass ${REDIS_PASSWORD}
+    env_file:
+      - ./redis/.env
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+      - ./redis/redis_data:/data
+    networks:
+      - dj_server
+    restart: always
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "2"
+
+networks:
+  dj_server:
+    name: net_default
+    external: true
+
+#volumes:
+#  static_value:
+#    external: true
+#  outgoing_volume:
+#    external: true

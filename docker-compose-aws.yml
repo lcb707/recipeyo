@@ -1,0 +1,178 @@
+# 사용 전 외부 네트워크/볼륨 생성:
+#   docker network create net_default
+#   docker volume create static_value
+#   docker volume create outgoing_volume   # 업로드 이미지(media) 저장용
+
+services:
+  mysql_dj:
+    image: mysql:8.0
+    restart: always
+    container_name: mysql_dj
+    environment:
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
+      MYSQL_DATABASE: "${MYSQL_DATABASE:-dj_DB}"
+      MYSQL_USER: "${MYSQL_USER:-sky}"
+      MYSQL_PASSWORD: "${MYSQL_PASSWORD}"
+      TZ: Asia/Seoul
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --sql_mode=STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION
+      - --default-authentication-plugin=mysql_native_password
+    volumes:
+      - ./db_mysql/database/init/:/docker-entrypoint-initdb.d/
+      - ./db_mysql/database/datadir/:/var/lib/mysql
+    platform: linux/x86_64
+    ports:
+      - "63006:3306"
+    networks:
+      - dj_server
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "2"
+
+  dj-server60000:
+    build: ./backend
+    image: dj-server:1.0.1
+    restart: always
+    container_name: dj-server60000
+    env_file:
+      - ./backend/.env
+    networks:
+      - dj_server
+    environment:
+      - DEBUG=False
+      - REMOTE_SERVER_TYPE=PRODUCTION
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "2"
+    volumes: # 신규 설치 시 볼륨 마운트 확인
+      - ./volume/static_value:/usr/src/app/staticfiles
+      - ./volume/outgoing_volume:/usr/src/app/outgoing
+    depends_on:
+      mysql_dj:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 3031"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  celery_worker:
+    build: ./backend
+    image: dj-server:1.0.1
+    restart: always
+    container_name: celery_worker
+    env_file:
+      - ./backend/.env
+    command: celery -A config worker --loglevel=info
+    depends_on:
+      dj-server60000:
+        condition: service_healthy
+    networks:
+      - dj_server
+    environment:
+      - DEBUG=False
+      - REMOTE_SERVER_TYPE=PRODUCTION
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    image: frontend:1.0
+    restart: always
+    container_name: frontend
+    networks:
+      - dj_server
+    environment:
+      - NODE_ENV=production
+      # API 베이스를 다른 URL로 쓸 때만 설정. 기본은 same-origin(/api).
+      # - NEXT_PUBLIC_API_URL=https://recipeyo.duckdns.org
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 40001"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  nginx:
+    build: ./nginx
+    image: isung/nginx:1.1
+    restart: always
+    container_name: nginx_dj
+    networks:
+      - dj_server
+    ports:
+      - "80:31000"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./volume/static_value:/usr/src/app/staticfiles:ro
+      - ./volume/outgoing_volume:/usr/src/app/outgoing:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "10"
+    depends_on:
+      dj-server60000:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 443"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    container_name: django_redis
+    command: >
+      redis-server /usr/local/etc/redis/redis.conf
+      --requirepass ${REDIS_PASSWORD}
+    env_file:
+      - ./redis/.env
+    volumes:
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+      - ./redis/redis_data:/data
+    networks:
+      - dj_server
+    restart: always
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "2"
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a $$REDIS_PASSWORD ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+networks:
+  dj_server:
+    name: net_default
+    external: true
+
+
+# docker network create net_default
+# 환경 변수 및 설정 파일 위치 확인
+# ./backend/.env
+# ./redis/.env
+# ./redis/redis.conf
+# ./nginx/conf.d 내부의 설정 파일들

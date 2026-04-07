@@ -2,6 +2,7 @@
 .env
 *.md
 volume/
+.env.aws
 
 # 데이터 베이스스
 db_mysql/database/

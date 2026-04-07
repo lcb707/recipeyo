@@ -177,3 +177,13 @@ export interface RecipeStep {
     description: string;
     image?: string | null;
 }
+
+export interface YoutubeImportRequest {
+    youtube_url: string;
+    async?: boolean;
+}
+
+export interface YoutubeImportResponse {
+    recipe_id?: number;
+    job_id?: string;
+}

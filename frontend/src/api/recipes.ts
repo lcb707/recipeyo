@@ -1,5 +1,5 @@
 import { apiClient as client } from './client';
-import { ApiResponse, Recipe, PaginatedResult, ScrapFolder } from '../types';
+import { ApiResponse, Recipe, PaginatedResult, ScrapFolder, YoutubeImportRequest, YoutubeImportResponse } from '../types';
 
 // 레시피 목록 조회 (페이지네이션/검색 지원)
 export const getMyRecipes = async (page: number = 1, limit: number = 6, search: string = ''): Promise<ApiResponse<PaginatedResult<Recipe>>> => {
@@ -92,6 +92,16 @@ export interface RecipeScrapStatus {
 export const checkRecipeScrapStatus = async (recipeId: number): Promise<ApiResponse<RecipeScrapStatus>> => {
     const response = await client.get<ApiResponse<RecipeScrapStatus>>(`/api/v1/community/recipe-scraps/check/`, {
         params: { recipe_id: recipeId }
+    });
+    return response.data;
+};
+
+// 유튜브 URL 기반 레시피 자동 생성
+export const importYoutubeRecipe = async (payload: YoutubeImportRequest): Promise<ApiResponse<YoutubeImportResponse>> => {
+    const response = await client.post<ApiResponse<YoutubeImportResponse>>('/api/v1/recipes/youtube-import/', payload, {
+        headers: {
+            'Content-Type': 'application/json',
+        },
     });
     return response.data;
 };

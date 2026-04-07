@@ -24,6 +24,7 @@ class RecipeService:
     레시피 도메인 비즈니스 로직. View는 검증된 데이터만 전달하고,
     트랜잭션·검증·저장은 여기서만 수행한다.
     """
+    MAX_YOUTUBE_DURATION_SECONDS = 20 * 60
 
     @staticmethod
     def _validate_create_input(
@@ -251,6 +252,13 @@ class RecipeService:
                 message="유튜브 메타데이터를 가져오는 중 오류가 발생했습니다.",
                 error_code=ResponseCode.ErrorCode.InternalServerError,
             ) from e
+
+        duration_seconds = bundle.get("duration_seconds")
+        if isinstance(duration_seconds, (int, float)) and duration_seconds > RecipeService.MAX_YOUTUBE_DURATION_SECONDS:
+            raise BusinessLogicException(
+                message="20분 이하 유튜브 영상만 레시피 추출이 가능합니다.",
+                error_code=ResponseCode.ErrorCode.InputAreaInvalid,
+            )
 
         try:
             from .youtube_llm import parse_recipe_with_llm

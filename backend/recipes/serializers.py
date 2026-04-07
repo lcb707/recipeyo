@@ -212,18 +212,19 @@ class YouTubeImportSerializer(serializers.Serializer):
 
     youtube_url = serializers.URLField(required=True)
     # Python 예약어(async) 때문에 필드 선언 대신 to_internal_value에서 처리
-    _async_bool = serializers.BooleanField(required=False, default=False)
+    async_bool = serializers.BooleanField(required=False, default=False)
 
     def to_internal_value(self, data):
         incoming = dict(data or {})
         raw_async = incoming.pop("async", False)
         parsed = super().to_internal_value(incoming)
-        parsed["async"] = self._async_bool.run_validation(raw_async)
+        parsed["async"] = self.fields["async_bool"].run_validation(raw_async)
         return parsed
 
     def validate_youtube_url(self, value):
-        from .youtube_extract import parse_youtube_video_id
+        from .youtube_extract import parse_youtube_video_id, normalize_and_validate_youtube_url
 
-        if not parse_youtube_video_id(value):
+        normalized = normalize_and_validate_youtube_url(value)
+        if not parse_youtube_video_id(normalized):
             raise serializers.ValidationError("지원하는 YouTube 영상 URL 형식이 아닙니다.")
-        return value
+        return normalized

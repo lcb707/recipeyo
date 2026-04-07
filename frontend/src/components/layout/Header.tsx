@@ -64,6 +64,7 @@ export const Header = () => {
                     <Link href="/fridge" className={`text-sm font-semibold transition-colors ${isActive('/fridge') ? 'text-primary' : 'text-slate-600 dark:text-slate-300 hover:text-primary'}`}>냉장고</Link>
                     <Link href="/fridge-clearout" className={`text-sm font-bold transition-all px-3 py-1.5 rounded-lg ${isActive('/fridge-clearout') ? 'bg-green-500 text-white shadow-lg shadow-green-500/20' : 'text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20'}`}>냉장고 파먹기</Link>
                     <Link href="/recipes" className={`text-sm font-semibold transition-colors ${isActive('/recipes') ? 'text-primary' : 'text-slate-600 dark:text-slate-300 hover:text-primary'}`}>레시피</Link>
+                    <Link href="/recipes/extract" className={`text-sm font-semibold transition-colors ${isActive('/recipes/extract') ? 'text-primary' : 'text-slate-600 dark:text-slate-300 hover:text-primary'}`}>레시피 추출</Link>
                     <Link href="/community" className={`text-sm font-semibold transition-colors ${isActive('/community') ? 'text-primary' : 'text-slate-600 dark:text-slate-300 hover:text-primary'}`}>커뮤니티</Link>
                 </nav>
                 <Link href="/mypage" className="bg-primary/10 p-0.5 rounded-full ring-2 ring-primary/20 cursor-pointer hover:ring-primary/40 transition-all focus:outline-none">

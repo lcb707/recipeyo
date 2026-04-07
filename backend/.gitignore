@@ -1,0 +1,108 @@
+# ======================
+# Python
+# ======================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+docs/
+# ======================
+# Virtual Environment
+# ======================
+venv/
+env/
+.venv/
+miniconda.sh
+.conda/
+conda_env/
+
+# Django generated files
+staticfiles/
+static/
+media/
+logs/
+
+# 업로드 이미지 (outgoing). 디렉터리 자체는 유지, 내부 파일만 무시
+outgoing/*
+!outgoing/.gitkeep
+*.log
+
+# Django secrets & env
+.env
+*.env
+config/*.env
+
+# Migrations cache
+**/migrations/__pycache__/
+**/migrations/*.pyc
+
+# ======================
+# MySQL (local dev DB)
+# ======================
+db_mysql/database/
+db_mysql/mysql/data/
+db_mysql/mysql/logs/
+db_mysql/mysql/conf.d/
+
+# ======================
+# Docker
+# ======================
+docker-entrypoint.sh~
+uwsgi.sock
+uwsgi.pid
+*.pid
+/tmp/
+.cache/
+
+# Local override compose files
+docker-compose.override.yml
+docker-compose.local.yml
+
+# Docker internal temp artifacts
+*.bak
+*~
+
+# ======================
+# Build artifacts
+# ======================
+build/
+dist/
+.eggs/
+*.egg-info/
+*.spec
+*.manifest
+
+# ======================
+# Coverage / Test Reports
+# ======================
+.coverage
+coverage.xml
+htmlcov/
+pytest_cache/
+test_output/
+
+# ======================
+# OS / Editor
+# ======================
+.DS_Store
+Thumbs.db
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# JetBrains (PyCharm)
+.idea/
+*.iml
+
+# Swap files
+*.swp
+*.swo
+*.orig
+
+# ======================
+# Misc
+# ======================
+*.tmp

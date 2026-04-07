@@ -1,0 +1,10 @@
+
+# ======================
+# MySQL (local dev DB)
+# ======================
+db_mysql/database/
+db_mysql/mysql/data/
+db_mysql/mysql/logs/
+db_mysql/mysql/conf.d/
+db_mysql/database/datadir/
+/database/datadir/

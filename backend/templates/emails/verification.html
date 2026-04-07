@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>회원가입 인증번호</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; background-color: #f4f7f9;">
+    <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+        <tr>
+            <td style="padding: 40px 0; text-align: center; background-color: #4A90E2;">
+                <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">[서비스명]</h1>
+            </td>
+        </tr>
+        
+        <tr>
+            <td style="padding: 40px 30px; color: #333333;">
+                <h2 style="margin-top: 0; font-size: 20px; color: #111111;">회원가입 인증번호 안내</h2>
+                <p style="font-size: 16px; line-height: 1.6; color: #666666;">
+                    안녕하세요, <strong>{{ user_email }}</strong> 님!<br>
+                    서비스 이용을 위해 아래의 인증번호를 회원가입 창에 입력해 주세요.
+                </p>
+                
+                <div style="margin: 30px 0; padding: 20px; background-color: #f8f9fa; border-radius: 6px; text-align: center; border: 1px solid #e9ecef;">
+                    <span style="font-size: 32px; font-weight: 800; color: #4A90E2; letter-spacing: 5px;">{{ code }}</span>
+                </div>
+                
+                <p style="font-size: 14px; line-height: 1.6; color: #e74c3c; font-weight: 600;">
+                    ※ 이 인증번호는 발송 후 {{ expire_minutes }}분 동안만 유효합니다.
+                </p>
+                <p style="font-size: 14px; line-height: 1.6; color: #999999; margin-top: 20px;">
+                    본인이 요청하지 않은 경우 이 메일을 무시하셔도 됩니다.
+                </p>
+            </td>
+        </tr>
+        
+        <tr>
+            <td style="padding: 20px 30px; background-color: #f1f3f5; text-align: center; font-size: 12px; color: #999999;">
+                <p style="margin: 5px 0;">본 메일은 발신 전용입니다. 문의사항은 고객센터를 이용해 주세요.</p>
+                <p style="margin: 5px 0;">&copy; 2026 [회사/서비스명]. All rights reserved.</p>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

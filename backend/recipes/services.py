@@ -1,4 +1,5 @@
 import logging
+import re
 from typing import Any, Dict, List, Optional
 
 import requests
@@ -25,6 +26,148 @@ class RecipeService:
     트랜잭션·검증·저장은 여기서만 수행한다.
     """
     MAX_YOUTUBE_DURATION_SECONDS = 20 * 60
+    _YOUTUBE_VIDEO_ID_PATTERN = re.compile(r"^[0-9A-Za-z_-]{11}$")
+
+    @staticmethod
+    def _is_youtube_recipe_context(
+        *,
+        instance: Optional[Recipe] = None,
+        parsed_source_type: Optional[str] = None,
+        source_url: Optional[str] = None,
+        youtube_video_id: Optional[str] = None,
+    ) -> bool:
+        """업데이트 요청이 유튜브 레시피 컨텍스트인지 판단."""
+        if parsed_source_type == Recipe.ParsedSourceType.YOUTUBE:
+            return True
+        if instance is not None and instance.parsed_source_type == Recipe.ParsedSourceType.YOUTUBE:
+            return True
+        if youtube_video_id:
+            return True
+        if source_url and ("youtube.com" in source_url or "youtu.be" in source_url):
+            return True
+        return False
+
+    @staticmethod
+    def _normalize_youtube_ingredients_for_update(ingredients: Optional[List[Dict[str, Any]]]) -> Optional[List[Dict[str, Any]]]:
+        """
+        유튜브 레시피 업데이트용 재료 정규화/검증.
+        - name 필수
+        - amount는 sanitize 규칙 적용
+        - 빈 항목 제거 후 최소 1개 보장
+        """
+        if ingredients is None:
+            return None
+        if not isinstance(ingredients, list):
+            raise BusinessLogicException(
+                message="재료 데이터 형식이 올바르지 않습니다.",
+                error_code=ResponseCode.ErrorCode.InputAreaInvalid,
+            )
+        normalized: List[Dict[str, Any]] = []
+        for idx, item in enumerate(ingredients):
+            src = item if isinstance(item, dict) else {}
+            name = str(src.get("name") or "").strip()[:255]
+            if not name:
+                continue
+            normalized.append(
+                {
+                    "name": name,
+                    "amount": sanitize_youtube_ingredient_amount(src.get("amount"))[:100],
+                    "unit": (None if src.get("unit") in (None, "") else str(src.get("unit")).strip()[:20]),
+                    "order": src.get("order", idx),
+                }
+            )
+        if not normalized:
+            raise BusinessLogicException(
+                message="유튜브 레시피 재료가 유효하지 않습니다. 최소 1개 이상의 재료가 필요합니다.",
+                error_code=ResponseCode.ErrorCode.InputAreaInvalid,
+            )
+        return normalized
+
+    @staticmethod
+    def _normalize_youtube_steps_for_update(steps: Optional[List[Dict[str, Any]]]) -> Optional[List[Dict[str, Any]]]:
+        """
+        유튜브 레시피 업데이트용 조리 단계 정규화/검증.
+        - description/instruction 중 하나는 필수
+        - 빈 항목 제거 후 step_number 재정렬
+        - 최소 1개 보장
+        """
+        if steps is None:
+            return None
+        if not isinstance(steps, list):
+            raise BusinessLogicException(
+                message="조리 단계 데이터 형식이 올바르지 않습니다.",
+                error_code=ResponseCode.ErrorCode.InputAreaInvalid,
+            )
+        normalized: List[Dict[str, Any]] = []
+        for item in steps:
+            src = item if isinstance(item, dict) else {}
+            desc = str(src.get("description") or src.get("instruction") or "").strip()
+            if not desc:
+                continue
+            normalized.append(
+                {
+                    "description": desc,
+                    "image": src.get("image"),
+                }
+            )
+        if not normalized:
+            raise BusinessLogicException(
+                message="유튜브 레시피 조리 단계가 유효하지 않습니다. 최소 1개 이상의 단계가 필요합니다.",
+                error_code=ResponseCode.ErrorCode.InputAreaInvalid,
+            )
+        for i, item in enumerate(normalized):
+            item["step_number"] = i + 1
+        return normalized
+
+    @staticmethod
+    def _validate_and_normalize_youtube_source_fields(
+        *,
+        source_url: Optional[str],
+        youtube_video_id: Optional[str],
+    ) -> Dict[str, Optional[str]]:
+        """
+        유튜브 source 필드 무결성 검증.
+        - source_url은 normalize/validate
+        - youtube_video_id는 11자 패턴 검증
+        - 둘 다 있으면 서로 일치해야 함
+        """
+        normalized_source_url: Optional[str] = source_url
+        normalized_video_id: Optional[str] = youtube_video_id
+        parsed_video_id_from_url: Optional[str] = None
+
+        if source_url:
+            from .youtube_extract import normalize_and_validate_youtube_url, parse_youtube_video_id
+
+            normalized_source_url = normalize_and_validate_youtube_url(str(source_url).strip())
+            parsed_video_id_from_url = parse_youtube_video_id(normalized_source_url)
+            if not parsed_video_id_from_url:
+                raise BusinessLogicException(
+                    message="유효한 YouTube 영상 URL이 아닙니다.",
+                    error_code=ResponseCode.ErrorCode.InputAreaInvalid,
+                )
+
+        if youtube_video_id:
+            candidate = str(youtube_video_id).strip()
+            if RecipeService._YOUTUBE_VIDEO_ID_PATTERN.fullmatch(candidate) is None:
+                raise BusinessLogicException(
+                    message="youtube_video_id 형식이 올바르지 않습니다.",
+                    error_code=ResponseCode.ErrorCode.InputAreaInvalid,
+                )
+            normalized_video_id = candidate
+
+        if parsed_video_id_from_url and normalized_video_id and parsed_video_id_from_url != normalized_video_id:
+            raise BusinessLogicException(
+                message="YouTube URL의 video_id와 요청 데이터의 youtube_video_id가 일치하지 않습니다.",
+                error_code=ResponseCode.ErrorCode.InputAreaInvalid,
+            )
+
+        if parsed_video_id_from_url and not normalized_video_id:
+            normalized_video_id = parsed_video_id_from_url
+
+        return {
+            "source_url": normalized_source_url,
+            "youtube_video_id": normalized_video_id,
+        }
 
     @staticmethod
     def _validate_create_input(
@@ -512,6 +655,24 @@ class RecipeService:
             instance.cooking_time = cooking_time
         if difficulty is not None:
             instance.difficulty = difficulty
+
+        # 유튜브 기반 레시피 업데이트 시 2차 무결성 검증/정규화
+        if RecipeService._is_youtube_recipe_context(
+            instance=instance,
+            parsed_source_type=getattr(instance, "parsed_source_type", None),
+            source_url=getattr(instance, "source_url", None),
+            youtube_video_id=getattr(instance, "youtube_video_id", None),
+        ):
+            normalized_source = RecipeService._validate_and_normalize_youtube_source_fields(
+                source_url=getattr(instance, "source_url", None),
+                youtube_video_id=getattr(instance, "youtube_video_id", None),
+            )
+            instance.source_url = normalized_source["source_url"]
+            instance.youtube_video_id = normalized_source["youtube_video_id"]
+            if ingredients is not None:
+                ingredients = RecipeService._normalize_youtube_ingredients_for_update(ingredients)
+            if steps is not None:
+                steps = RecipeService._normalize_youtube_steps_for_update(steps)
 
         instance.save()
         # logger.info("[update_recipe_with_nested] instance.save done")

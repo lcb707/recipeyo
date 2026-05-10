@@ -1,6 +1,6 @@
 .cursorrules
 .env
-*.md
+
 volume/
 .env.aws
 
